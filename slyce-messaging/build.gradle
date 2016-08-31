@@ -26,7 +26,7 @@ ext {
 
 android {
     compileSdkVersion 24
-    buildToolsVersion "24.0.1"
+    buildToolsVersion "24.0.2"
 
     defaultConfig {
         minSdkVersion 16
@@ -34,13 +34,8 @@ android {
         versionCode 102
         versionName "4.0"
         multiDexEnabled true
-        generatedDensities = []
-
+        vectorDrawables.useSupportLibrary = true
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-    }
-
-    aaptOptions {
-        additionalParameters "--no-version-vectors"
     }
 
     buildTypes {
