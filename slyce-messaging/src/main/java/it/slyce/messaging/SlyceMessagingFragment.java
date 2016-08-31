@@ -140,21 +140,29 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
 
     public void setStyle(int style) {
         TypedArray ta = getActivity().obtainStyledAttributes(style, R.styleable.SlyceMessagingTheme);
-        this.customSettings.backgroudColor = ta.getColor(R.styleable.SlyceMessagingTheme_backgroundColor, Color.GRAY);
-        rootView.setBackgroundColor(this.customSettings.backgroudColor); // the background color
+        this.customSettings.backgroundColor = ta.getColor(R.styleable.SlyceMessagingTheme_backgroundColor, Color.GRAY);
+        rootView.setBackgroundColor(this.customSettings.backgroundColor); // the background color
         this.customSettings.timestampColor = ta.getColor(R.styleable.SlyceMessagingTheme_timestampTextColor, Color.BLACK);
+        this.customSettings.avatarBackground = ta.getResourceId(R.styleable.SlyceMessagingTheme_avatarBackground, R.drawable.shape_oval_white);
         this.customSettings.externalBubbleTextColor = ta.getColor(R.styleable.SlyceMessagingTheme_externalBubbleTextColor, Color.WHITE);
         this.customSettings.externalBubbleBackgroundColor = ta.getColor(R.styleable.SlyceMessagingTheme_externalBubbleBackground, Color.WHITE);
         this.customSettings.localBubbleBackgroundColor = ta.getColor(R.styleable.SlyceMessagingTheme_localBubbleBackground, Color.WHITE);
         this.customSettings.localBubbleTextColor = ta.getColor(R.styleable.SlyceMessagingTheme_localBubbleTextColor, Color.WHITE);
         this.customSettings.snackbarBackground = ta.getColor(R.styleable.SlyceMessagingTheme_snackbarBackground, Color.WHITE);
-        this.customSettings.snackbarButtonColor = ta.getColor(R.styleable.SlyceMessagingTheme_snackbarButtonColor, Color.WHITE);
+        this.customSettings.snackbarButtonColor = ta.getResourceId(R.styleable.SlyceMessagingTheme_snackbarButtonColor, R.color.text_blue);
         this.customSettings.snackbarTitleColor = ta.getColor(R.styleable.SlyceMessagingTheme_snackbarTitleColor, Color.WHITE);
+        this.customSettings.progressSpinnerColor = ta.getColor(R.styleable.SlyceMessagingTheme_progressSpinnerColor, Color.BLACK);
+        this.customSettings.messageInputTextColor = ta.getColor(R.styleable.SlyceMessagingTheme_messageInputTextColor, Color.BLUE);
+        this.customSettings.messageInputTextColorHint = ta.getColor(R.styleable.SlyceMessagingTheme_messageInputTextColorHint, Color.RED);
+
+        mEntryField.setTextColor(this.customSettings.messageInputTextColor);
+        mEntryField.setHintTextColor(this.customSettings.messageInputTextColorHint);
     }
 
     public void addNewMessages(List<Message> messages) {
         mMessages.addAll(messages);
-        new AddNewMessageTask(messages, mMessageItems, mRecyclerAdapter, mRecyclerView, getActivity().getApplicationContext(), customSettings).execute();
+        new AddNewMessageTask(messages, mMessageItems, mRecyclerAdapter,
+                mRecyclerView, getActivity().getApplicationContext(), customSettings).execute();
     }
 
     public void addNewMessage(Message message) {
@@ -172,8 +180,7 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
         super.onCreate(savedInstanceState);
 
         LayoutInflater inflater = getActivity().getLayoutInflater();
-        final View v = inflater.inflate(R.layout.fragment_slyce_messaging, null);
-        this.rootView = v;
+        this.rootView = inflater.inflate(R.layout.fragment_slyce_messaging, null);
         this.customSettings = new CustomSettings();
 
         // Setup views
@@ -190,7 +197,7 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
         mMessages = new ArrayList<>();
         mMessageItems = new ArrayList<>();
         mRecyclerAdapter = new MessageRecyclerAdapter(mMessageItems, customSettings);
-        mLinearLayoutManager = new LinearLayoutManager(this.getActivity().getApplicationContext()){
+        mLinearLayoutManager = new LinearLayoutManager(this.getActivity().getApplicationContext()) {
             @Override
             public boolean canScrollVertically() {
                 return !mRefresher.isRefreshing();
@@ -229,8 +236,8 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
 
         if (ContextCompat.checkSelfPermission(getActivity().getApplicationContext(),
                 Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED ||
-                        ContextCompat.checkSelfPermission(getActivity().getApplicationContext(),
-                                Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
+                ContextCompat.checkSelfPermission(getActivity().getApplicationContext(),
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
             ActivityCompat.requestPermissions(getActivity(), new String[]{Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE}, 232);
 
         return rootView;
@@ -328,7 +335,8 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
 
     private void replaceMessages(List<Message> messages, int upTo) {
         if (getActivity() != null) {
-            new ReplaceMessagesTask(messages, mMessageItems, mRecyclerAdapter, getActivity().getApplicationContext(), mRefresher, upTo).execute();
+            new ReplaceMessagesTask(messages, mMessageItems, mRecyclerAdapter,
+                    getActivity().getApplicationContext(), mRefresher, upTo).execute();
         }
     }
 
@@ -375,7 +383,7 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
             Intent pickPhotoIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
             pickPhotoIntent.setType("image/*");
             Intent chooserIntent = Intent.createChooser(pickPhotoIntent, "Take a photo or select one from your device");
-            chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[] {takePhotoIntent});
+            chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{takePhotoIntent});
             try {
                 startActivityForResult(chooserIntent, 1);
             } catch (RuntimeException exception) {

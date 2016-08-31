@@ -8,4 +8,19 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
+    <style name="Message">
+        <item name="backgroundColor">@color/message_background_color</item>
+        <item name="timestampTextColor">@color/message_timestamp_text_color</item>
+        <item name="avatarBackground">@drawable/avatar_background</item>
+        <item name="localBubbleBackground">@color/message_local_bubble_background</item>
+        <item name="localBubbleTextColor">@color/message_local_bubble_text_color</item>
+        <item name="externalBubbleBackground">@color/message_external_bubble_background</item>
+        <item name="externalBubbleTextColor">@color/message_external_bubble_text_color</item>
+        <item name="snackbarBackground">@color/message_snackbar_background</item>
+        <item name="snackbarTitleColor">@color/message_snackbar_title_color</item>
+        <item name="snackbarButtonColor">@color/message_snackbar_button_color</item>
+        <item name="messageInputTextColor">@color/message_input_color</item>
+        <item name="messageInputTextColorHint">@color/message_input_color_hint</item>
+    </style>
+
 </resources>

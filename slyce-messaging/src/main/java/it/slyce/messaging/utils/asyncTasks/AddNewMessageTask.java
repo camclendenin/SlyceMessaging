@@ -3,6 +3,7 @@ package it.slyce.messaging.utils.asyncTasks;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.support.design.widget.Snackbar;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.view.ViewGroup;
@@ -80,15 +81,15 @@ public class AddNewMessageTask extends AsyncTask {
                         public void onClick(View view) {
                             mRecyclerView.smoothScrollToPosition(mRecyclerAdapter.getItemCount() - 1);
                         }
-                    }).setActionTextColor(customSettings.snackbarButtonColor);
+                    });
             ViewGroup group = (ViewGroup) snackbar.getView();
             for (int i = 0; i < group.getChildCount(); i++) {
                 View v = group.getChildAt(i);
                 if (v instanceof TextView) {
-                    TextView textView = (TextView) v;
-                    textView.setTextColor(customSettings.snackbarTitleColor);
+                    ((TextView) v).setTextColor(customSettings.snackbarTitleColor);
                 }
             }
+            snackbar.setActionTextColor(ContextCompat.getColor(context, customSettings.snackbarButtonColor));
             snackbar.getView().setBackgroundColor(customSettings.snackbarBackground);
             snackbar.show();
         }

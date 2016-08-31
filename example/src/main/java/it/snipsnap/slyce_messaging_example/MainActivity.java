@@ -61,11 +61,11 @@ public class MainActivity extends AppCompatActivity {
         }
         message.setDate(new Date().getTime());
         if (Math.random() > 0.5) {
-            message.setAvatarUrl("https://lh3.googleusercontent.com/-Y86IN-vEObo/AAAAAAAAAAI/AAAAAAAKyAM/6bec6LqLXXA/s0-c-k-no-ns/photo.jpg");
+            //message.setAvatarUrl("https://lh3.googleusercontent.com/-Y86IN-vEObo/AAAAAAAAAAI/AAAAAAAKyAM/6bec6LqLXXA/s0-c-k-no-ns/photo.jpg");
             message.setUserId("LP");
             message.setSource(MessageSource.EXTERNAL_USER);
         } else {
-            message.setAvatarUrl("https://scontent-lga3-1.xx.fbcdn.net/v/t1.0-9/10989174_799389040149643_722795835011402620_n.jpg?oh=bff552835c414974cc446043ac3c70ca&oe=580717A5");
+            //message.setAvatarUrl("https://scontent-lga3-1.xx.fbcdn.net/v/t1.0-9/10989174_799389040149643_722795835011402620_n.jpg?oh=bff552835c414974cc446043ac3c70ca&oe=580717A5");
             message.setUserId("MP");
             message.setSource(MessageSource.LOCAL_USER);
         }
@@ -84,9 +84,7 @@ public class MainActivity extends AppCompatActivity {
         hasLoadedMore = false;
 
         slyceMessagingFragment = (SlyceMessagingFragment) getFragmentManager().findFragmentById(R.id.fragment_for_slyce_messaging);
-        slyceMessagingFragment.setDefaultAvatarUrl("https://scontent-lga3-1.xx.fbcdn.net/v/t1.0-9/10989174_799389040149643_722795835011402620_n.jpg?oh=bff552835c414974cc446043ac3c70ca&oe=580717A5");
-        slyceMessagingFragment.setDefaultDisplayName("Matthew Page");
-        slyceMessagingFragment.setDefaultUserId("uhtnaeohnuoenhaeuonthhntouaetnheuontheuo");
+        slyceMessagingFragment.setStyle(R.style.Message);
 
         slyceMessagingFragment.setOnSendMessageListener(new UserSendsMessageListener() {
             @Override
@@ -108,24 +106,8 @@ public class MainActivity extends AppCompatActivity {
                 if (!hasLoadedMore) {
                     hasLoadedMore = true;
                     ArrayList<Message> messages = new ArrayList<>();
-                    GeneralOptionsMessage generalTextMessage = new GeneralOptionsMessage();
-                    generalTextMessage.setTitle("Started group");
-                    generalTextMessage.setFinalText("Accepted");
-                    generalTextMessage.setOptions(new String[]{"Accept", "Reject"});
-                    generalTextMessage.setOnOptionSelectedListener(new OnOptionSelectedListener() {
-                        @Override
-                        public String onOptionSelected(int optionSelected) {
-                            if (optionSelected == 0) {
-                                return "Accepted";
-                            } else {
-                                return "Rejected";
-                            }
-                        }
-                    });
-                    messages.add(generalTextMessage);
                     for (int i = 0; i < 50; i++)
                         messages.add(getRandomMessage());
-                    messages.add(generalTextMessage);
                     Log.d("info", "loadMoreMessages() returns");
                     return messages;
                 } else {
@@ -149,9 +131,6 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 TextMessage textMessage = new TextMessage();
                 textMessage.setText("Another message...");
-                textMessage.setAvatarUrl("https://lh3.googleusercontent.com/-Y86IN-vEObo/AAAAAAAAAAI/AAAAAAAKyAM/6bec6LqLXXA/s0-c-k-no-ns/photo.jpg");
-                textMessage.setDisplayName("Gary Johnson");
-                textMessage.setUserId("LP");
                 textMessage.setDate(new Date().getTime());
                 textMessage.setSource(MessageSource.EXTERNAL_USER);
                 slyceMessagingFragment.addNewMessage(textMessage);

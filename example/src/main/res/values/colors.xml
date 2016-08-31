@@ -1,6 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#3F51B5</color>
+    <color name="colorPrimary">#FFFF5A60</color>
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#FF4081</color>
+
+    <color name="item_background">#FFFFFFFF</color>
+    <color name="text_primary_hint">#FF9DA1A7</color>
+    <color name="text_secondary">#FFFFFFFF</color>
+    <color name="text_primary">#FF000000</color>
+
+    <color name="message_background_color">@color/item_background</color>
+    <color name="message_timestamp_text_color">@color/text_primary_hint</color>
+    <color name="message_local_bubble_background">@color/colorPrimary</color>
+    <color name="message_local_bubble_text_color">@color/text_secondary</color>
+    <color name="message_external_bubble_background">#FFE6E7EC</color>
+    <color name="message_external_bubble_text_color">@color/text_primary</color>
+    <color name="message_snackbar_background">@color/item_background</color>
+    <color name="message_snackbar_title_color">@color/text_primary</color>
+    <color name="message_snackbar_button_color">@color/colorPrimary</color>
+    <color name="progress_spinner_color">@color/colorPrimary</color>
+    <color name="message_input_color">@color/text_primary</color>
+    <color name="message_input_color_hint">@color/text_primary_hint</color>
 </resources>

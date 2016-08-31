@@ -12,10 +12,10 @@ import com.bumptech.glide.Glide;
 
 import it.slyce.messaging.message.MessageSource;
 import it.slyce.messaging.message.TextMessage;
-import it.slyce.messaging.utils.DateUtils;
 import it.slyce.messaging.message.messageItem.MessageItem;
 import it.slyce.messaging.message.messageItem.MessageItemType;
 import it.slyce.messaging.message.messageItem.MessageViewHolder;
+import it.slyce.messaging.utils.DateUtils;
 
 /**
  * Created by matthewpage on 6/27/16.
@@ -33,17 +33,17 @@ public class MessageTextItem extends MessageItem {
     public void buildMessageItem(
             MessageViewHolder messageViewHolder) {
 
-        if (message != null &&  messageViewHolder != null && messageViewHolder instanceof MessageTextViewHolder) {
+        if (message != null && messageViewHolder != null && messageViewHolder instanceof MessageTextViewHolder) {
             final MessageTextViewHolder messageTextViewHolder = (MessageTextViewHolder) messageViewHolder;
 
             // Get content
             String date = DateUtils.getTimestamp(message.getDate());
-            String text = ((TextMessage)message).getText();
+            String text = ((TextMessage) message).getText();
             this.avatarUrl = message.getAvatarUrl();
             this.initials = message.getInitials();
 
             // Populate views with content
-            messageTextViewHolder.initials.setText(initials  != null ? initials : "");
+            messageTextViewHolder.initials.setText(initials != null ? initials : "");
             messageTextViewHolder.text.setText(text != null ? text : "");
             messageTextViewHolder.timestamp.setText(date != null ? date : "");
 
@@ -51,8 +51,8 @@ public class MessageTextItem extends MessageItem {
                 @Override
                 public boolean onLongClick(View view) {
                     ClipboardManager clipboard = (ClipboardManager)
-                    context.getSystemService(Context.CLIPBOARD_SERVICE);
-                    ClipData clip = ClipData.newPlainText("simple text", ((TextMessage)MessageTextItem.this.message).getText());
+                            context.getSystemService(Context.CLIPBOARD_SERVICE);
+                    ClipData clip = ClipData.newPlainText("simple text", ((TextMessage) MessageTextItem.this.message).getText());
                     clipboard.setPrimaryClip(clip);
                     Vibrator v = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
                     v.vibrate(150);
@@ -74,6 +74,7 @@ public class MessageTextItem extends MessageItem {
             }
 
             messageTextViewHolder.avatar.setVisibility(isFirstConsecutiveMessageFromSource && !TextUtils.isEmpty(avatarUrl) ? View.VISIBLE : View.INVISIBLE);
+            messageTextViewHolder.avatarContainer.setBackgroundResource(messageTextViewHolder.customSettings.avatarBackground);
             messageTextViewHolder.avatarContainer.setVisibility(isFirstConsecutiveMessageFromSource ? View.VISIBLE : View.INVISIBLE);
             messageTextViewHolder.carrot.setVisibility(isFirstConsecutiveMessageFromSource ? View.VISIBLE : View.INVISIBLE);
             messageTextViewHolder.initials.setVisibility(isFirstConsecutiveMessageFromSource && TextUtils.isEmpty(avatarUrl) ? View.VISIBLE : View.GONE);

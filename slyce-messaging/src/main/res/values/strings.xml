@@ -3,9 +3,6 @@
     <!-- Application -->
     <string name="app_name">SnipSnapApp</string>
 
-    <string name="scout_entry_hint">Write a message...</string>
-
-
-
+    <string name="scout_entry_hint">Type your message&#8230;</string>
 
 </resources>

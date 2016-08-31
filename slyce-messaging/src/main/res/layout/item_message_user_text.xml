@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -13,23 +12,24 @@
         android:id="@+id/message_user_text_view_group_avatar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="16dp"
+        android:layout_alignParentEnd="true"
         android:layout_alignParentRight="true"
         android:layout_alignParentTop="true"
+        android:layout_marginLeft="16dp"
+        android:layout_marginStart="16dp"
         android:background="@drawable/shape_oval_navy">
 
-        <it.slyce.messaging.view.text.FontTextView
+        <TextView
             android:id="@+id/message_user_text_text_view_initials"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:maxLines="1"
             android:gravity="center"
+            android:maxLines="1"
             android:textAllCaps="true"
             android:textColor="@color/text_white"
             android:textSize="16sp"
-            app:font="museo_sans_500.otf"
-            tools:text="JF"/>
+            tools:text="JF" />
 
         <de.hdodenhof.circleimageview.CircleImageView
             android:id="@+id/message_user_text_image_view_avatar"
@@ -41,44 +41,47 @@
         android:id="@+id/message_user_text_image_view_carrot"
         android:layout_width="16dp"
         android:layout_height="16dp"
-        android:layout_toRightOf="@+id/message_user_text_view_group_bubble"
         android:layout_alignTop="@+id/message_user_text_view_group_bubble"
         android:layout_marginLeft="-4dp"
-        android:scaleType="fitCenter"
+        android:layout_marginStart="-4dp"
+        android:layout_toEndOf="@+id/message_user_text_view_group_bubble"
+        android:layout_toRightOf="@+id/message_user_text_view_group_bubble"
         android:adjustViewBounds="true"
-        app:srcCompat="@drawable/vd_ic_user_carrot"
-        android:tint="@color/background_white"/>
+        android:scaleType="fitCenter"
+        android:tint="@color/background_white"
+        app:srcCompat="@drawable/vd_ic_user_carrot" />
 
     <FrameLayout
         android:id="@+id/message_user_text_view_group_bubble"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_toLeftOf="@+id/message_user_text_view_group_avatar"
+        android:layout_toStartOf="@+id/message_user_text_view_group_avatar"
         android:background="@drawable/shape_rounded_rectangle_white"
         android:padding="16dp">
 
-        <it.slyce.messaging.view.text.FontTextView
+        <TextView
             android:id="@+id/message_user_text_text_view_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:autoLink="web"
-            android:gravity="left"
+            android:gravity="start"
             android:textColor="@color/text_navy"
             android:textSize="14sp"
-            app:font="museo_sans_500.otf"
-            tools:text="In need of pizza. Can you help?"/>
+            tools:text="In need of pizza. Can you help?" />
     </FrameLayout>
 
-    <it.slyce.messaging.view.text.FontTextView
+    <TextView
         android:id="@+id/message_user_text_text_view_timestamp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_alignEnd="@+id/message_user_text_view_group_bubble"
         android:layout_alignRight="@+id/message_user_text_view_group_bubble"
         android:layout_below="@+id/message_user_text_view_group_bubble"
         android:layout_marginBottom="@dimen/message_timestamp_margin_bottom"
         android:layout_marginTop="@dimen/message_timestamp_margin_top"
-        android:gravity="right"
-        android:singleLine="true"
+        android:gravity="end"
+        android:maxLines="1"
         android:textColor="@color/text_gray_darkest"
         android:textSize="10sp"
         tools:text="12:29pm" />
