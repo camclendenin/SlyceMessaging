@@ -326,9 +326,9 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
             protected void onPreExecute() {
                 super.onPreExecute();
                 refresher.setIsRefreshing(true);
-                spinnerExists = moreMessagesExist && messages.get(0) instanceof SpinnerMessage;
+                spinnerExists = moreMessagesExist && SlyceMessagingFragment.this.messages.get(0) instanceof SpinnerMessage;
                 if (spinnerExists) {
-                    messages.remove(0);
+                    SlyceMessagingFragment.this.messages.remove(0);
                 }
             }
 
@@ -344,7 +344,7 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
                 int upTo = messages.size();
                 for (int i = messages.size() - 1; i >= 0; i--) {
                     Message message = messages.get(i);
-                    messages.add(0, message);
+                    SlyceMessagingFragment.this.messages.add(0, message);
                 }
                 if (spinnerExists && moreMessagesExist) {
                     messages.add(0, new SpinnerMessage());
@@ -406,7 +406,7 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
                     .updateMediaStore()
                     .build();
             Intent pickPhotoIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-            pickPhotoIntent.setType("image*//*");
+            pickPhotoIntent.setType("image/*");
             Intent chooserIntent = Intent.createChooser(pickPhotoIntent, "Take a photo or select one from your device");
             chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{takePhotoIntent});
             try {
