@@ -83,7 +83,7 @@ public class MainActivity extends AppCompatActivity {
 
         hasLoadedMore = false;
 
-        slyceMessagingFragment = (SlyceMessagingFragment) getFragmentManager().findFragmentById(R.id.fragment_for_slyce_messaging);
+        slyceMessagingFragment = (SlyceMessagingFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_for_slyce_messaging);
         slyceMessagingFragment.setStyle(R.style.Message);
 
         slyceMessagingFragment.setOnSendMessageListener(new UserSendsMessageListener() {

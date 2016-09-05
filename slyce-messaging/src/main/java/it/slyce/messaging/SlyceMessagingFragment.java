@@ -1,33 +1,26 @@
 package it.slyce.messaging;
 
-import android.Manifest;
-import android.app.Fragment;
-import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.content.res.TypedArray;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
-import android.provider.MediaStore;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
+import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.ImageView;
-
-import com.commonsware.cwac.cam2.CameraActivity;
-import com.commonsware.cwac.cam2.ZoomStyle;
+import android.widget.TextView;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -40,7 +33,6 @@ import java.util.concurrent.TimeUnit;
 import it.slyce.messaging.listeners.LoadMoreMessagesListener;
 import it.slyce.messaging.listeners.UserClicksAvatarPictureListener;
 import it.slyce.messaging.listeners.UserSendsMessageListener;
-import it.slyce.messaging.message.MediaMessage;
 import it.slyce.messaging.message.Message;
 import it.slyce.messaging.message.MessageSource;
 import it.slyce.messaging.message.SpinnerMessage;
@@ -60,20 +52,24 @@ import it.slyce.messaging.view.ViewUtils;
  */
 public class SlyceMessagingFragment extends Fragment implements OnClickListener {
 
-    private static final int START_RELOADING_DATA_AT_SCROLL_VALUE = 5000; // TODO: maybe change this? make it customizable?
+    public static final String TAG = SlyceMessagingFragment.class.getSimpleName();
 
-    private EditText mEntryField;
-    private LinearLayoutManager mLinearLayoutManager;
-    private List<Message> mMessages;
-    private List<MessageItem> mMessageItems;
-    private MessageRecyclerAdapter mRecyclerAdapter;
-    private RecyclerView mRecyclerView;
-    private View rootView;
+    private static final int START_RELOADING_DATA_AT_SCROLL_VALUE = 5000; // TODO: maybe change this? make it customizable?
+    //private static final int REQUEST_CODE_PERMISSION_CAMERA_EXTERNAL_STORAGE = 232;
+    //private static final int REQUEST_CODE_CAMERA_INTENT = 1;
+
+    private EditText entryField;
+    private ImageView sendButton;
+    //private ImageView snapButton;
+    private List<Message> messages;
+    private List<MessageItem> messageItems;
+    private MessageRecyclerAdapter recyclerAdapter;
+    private RecyclerView recyclerView;
 
     private LoadMoreMessagesListener loadMoreMessagesListener;
     private UserSendsMessageListener listener;
     private CustomSettings customSettings;
-    private Refresher mRefresher;
+    private Refresher refresher;
 
     private String defaultAvatarUrl;
     private String defaultDisplayName;
@@ -82,38 +78,45 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
     private long recentUpdatedTime;
     private boolean moreMessagesExist;
 
+    private File file;
+    private Uri outputFileUri;
+
     public void setPictureButtonVisible(final boolean bool) {
         if (getActivity() != null)
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    ImageView imageView = (ImageView) rootView.findViewById(R.id.slyce_messaging_image_view_snap);
-                    imageView.setVisibility(bool ? View.VISIBLE : View.GONE);
+                    if (getView() != null) {
+                        ImageView imageView = (ImageView) getView().findViewById(R.id.slyce_messaging_image_view_snap);
+                        imageView.setVisibility(bool ? View.VISIBLE : View.GONE);
+                    }
                 }
             });
     }
 
     private void addSpinner() {
-        mMessages.add(0, new SpinnerMessage());
-        replaceMessages(mMessages, -1);
+        messages.add(0, new SpinnerMessage());
+        replaceMessages(messages, -1);
     }
 
     private void removeSpinner() {
-        if (mMessages.get(0) instanceof SpinnerMessage) {
-            mMessages.remove(0);
-            mMessageItems.remove(0);
-            mRecyclerAdapter.notifyItemRemoved(0);
+        if (messages.get(0) instanceof SpinnerMessage) {
+            messages.remove(0);
+            messageItems.remove(0);
+            recyclerAdapter.notifyItemRemoved(0);
         }
     }
 
     public void setMoreMessagesExist(boolean moreMessagesExist) {
-        if (this.moreMessagesExist == moreMessagesExist)
+        if (this.moreMessagesExist == moreMessagesExist) {
             return;
+        }
         this.moreMessagesExist = moreMessagesExist;
-        if (moreMessagesExist)
+        if (moreMessagesExist) {
             addSpinner();
-        else
+        } else {
             removeSpinner();
+        }
         loadMoreMessagesIfNecessary();
     }
 
@@ -123,7 +126,7 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
     }
 
     public void setUserClicksAvatarPictureListener(UserClicksAvatarPictureListener userClicksAvatarPictureListener) {
-        this.customSettings.userClicksAvatarPictureListener = userClicksAvatarPictureListener;
+        customSettings.userClicksAvatarPictureListener = userClicksAvatarPictureListener;
     }
 
     public void setDefaultAvatarUrl(String defaultAvatarUrl) {
@@ -139,30 +142,32 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
     }
 
     public void setStyle(int style) {
-        TypedArray ta = getActivity().obtainStyledAttributes(style, R.styleable.SlyceMessagingTheme);
-        this.customSettings.backgroundColor = ta.getColor(R.styleable.SlyceMessagingTheme_backgroundColor, Color.GRAY);
-        rootView.setBackgroundColor(this.customSettings.backgroundColor); // the background color
-        this.customSettings.timestampColor = ta.getColor(R.styleable.SlyceMessagingTheme_timestampTextColor, Color.BLACK);
-        this.customSettings.avatarBackground = ta.getResourceId(R.styleable.SlyceMessagingTheme_avatarBackground, R.drawable.shape_oval_white);
-        this.customSettings.externalBubbleTextColor = ta.getColor(R.styleable.SlyceMessagingTheme_externalBubbleTextColor, Color.WHITE);
-        this.customSettings.externalBubbleBackgroundColor = ta.getColor(R.styleable.SlyceMessagingTheme_externalBubbleBackground, Color.WHITE);
-        this.customSettings.localBubbleBackgroundColor = ta.getColor(R.styleable.SlyceMessagingTheme_localBubbleBackground, Color.WHITE);
-        this.customSettings.localBubbleTextColor = ta.getColor(R.styleable.SlyceMessagingTheme_localBubbleTextColor, Color.WHITE);
-        this.customSettings.snackbarBackground = ta.getColor(R.styleable.SlyceMessagingTheme_snackbarBackground, Color.WHITE);
-        this.customSettings.snackbarButtonColor = ta.getResourceId(R.styleable.SlyceMessagingTheme_snackbarButtonColor, R.color.text_blue);
-        this.customSettings.snackbarTitleColor = ta.getColor(R.styleable.SlyceMessagingTheme_snackbarTitleColor, Color.WHITE);
-        this.customSettings.progressSpinnerColor = ta.getColor(R.styleable.SlyceMessagingTheme_progressSpinnerColor, Color.BLACK);
-        this.customSettings.messageInputTextColor = ta.getColor(R.styleable.SlyceMessagingTheme_messageInputTextColor, Color.BLUE);
-        this.customSettings.messageInputTextColorHint = ta.getColor(R.styleable.SlyceMessagingTheme_messageInputTextColorHint, Color.RED);
+        TypedArray ta = getContext().obtainStyledAttributes(style, R.styleable.SlyceMessagingTheme);
+        customSettings.backgroundColor = ta.getColor(R.styleable.SlyceMessagingTheme_backgroundColor, Color.GRAY);
+        if (getView() != null) {
+            getView().setBackgroundColor(customSettings.backgroundColor); // the background color
+        }
+        customSettings.timestampColor = ta.getColor(R.styleable.SlyceMessagingTheme_timestampTextColor, Color.BLACK);
+        customSettings.avatarBackground = ta.getResourceId(R.styleable.SlyceMessagingTheme_avatarBackground, R.drawable.shape_oval_white);
+        customSettings.externalBubbleTextColor = ta.getColor(R.styleable.SlyceMessagingTheme_externalBubbleTextColor, Color.WHITE);
+        customSettings.externalBubbleBackgroundColor = ta.getColor(R.styleable.SlyceMessagingTheme_externalBubbleBackground, Color.WHITE);
+        customSettings.localBubbleBackgroundColor = ta.getColor(R.styleable.SlyceMessagingTheme_localBubbleBackground, Color.WHITE);
+        customSettings.localBubbleTextColor = ta.getColor(R.styleable.SlyceMessagingTheme_localBubbleTextColor, Color.WHITE);
+        customSettings.snackbarBackground = ta.getColor(R.styleable.SlyceMessagingTheme_snackbarBackground, Color.WHITE);
+        customSettings.snackbarButtonColor = ta.getResourceId(R.styleable.SlyceMessagingTheme_snackbarButtonColor, R.color.text_blue);
+        customSettings.snackbarTitleColor = ta.getColor(R.styleable.SlyceMessagingTheme_snackbarTitleColor, Color.WHITE);
+        customSettings.progressSpinnerColor = ta.getColor(R.styleable.SlyceMessagingTheme_progressSpinnerColor, Color.BLACK);
+        customSettings.messageInputTextColor = ta.getColor(R.styleable.SlyceMessagingTheme_messageInputTextColor, Color.BLUE);
+        customSettings.messageInputTextColorHint = ta.getColor(R.styleable.SlyceMessagingTheme_messageInputTextColorHint, Color.RED);
 
-        mEntryField.setTextColor(this.customSettings.messageInputTextColor);
-        mEntryField.setHintTextColor(this.customSettings.messageInputTextColorHint);
+        entryField.setTextColor(customSettings.messageInputTextColor);
+        entryField.setHintTextColor(customSettings.messageInputTextColorHint);
     }
 
     public void addNewMessages(List<Message> messages) {
-        mMessages.addAll(messages);
-        new AddNewMessageTask(messages, mMessageItems, mRecyclerAdapter,
-                mRecyclerView, getActivity().getApplicationContext(), customSettings).execute();
+        this.messages.addAll(messages);
+        new AddNewMessageTask(messages, messageItems, recyclerAdapter,
+                recyclerView, getContext().getApplicationContext(), customSettings).execute();
     }
 
     public void addNewMessage(Message message) {
@@ -176,31 +181,52 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
     }
 
     @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        customSettings = new CustomSettings();
+    }
+
+    @Override
     public View onCreateView(LayoutInflater layoutInflater, ViewGroup viewGroup, Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        LayoutInflater inflater = getActivity().getLayoutInflater();
-        this.rootView = inflater.inflate(R.layout.fragment_slyce_messaging, null);
-        this.customSettings = new CustomSettings();
+        View view = layoutInflater.inflate(R.layout.fragment_slyce_messaging, viewGroup, false);
 
-        // Setup views
-        mEntryField = (EditText) rootView.findViewById(R.id.slyce_messaging_edit_text_entry_field);
-        ImageView mSendButton = (ImageView) rootView.findViewById(R.id.slyce_messaging_image_view_send);
-        ImageView mSnapButton = (ImageView) rootView.findViewById(R.id.slyce_messaging_image_view_snap);
-        mRecyclerView = (RecyclerView) rootView.findViewById(R.id.slyce_messaging_recycler_view);
+        entryField = (EditText) view.findViewById(R.id.slyce_messaging_edit_text_entry_field);
+        sendButton = (ImageView) view.findViewById(R.id.slyce_messaging_image_view_send);
+        //snapButton = (ImageView) view.findViewById(R.id.slyce_messaging_image_view_snap);
+        recyclerView = (RecyclerView) view.findViewById(R.id.slyce_messaging_recycler_view);
 
-        // Add interfaces
-        mSendButton.setOnClickListener(this);
-        mSnapButton.setOnClickListener(this);
+        return view;
+    }
 
-        // Init variables for recycler view
-        mMessages = new ArrayList<>();
-        mMessageItems = new ArrayList<>();
-        mRecyclerAdapter = new MessageRecyclerAdapter(mMessageItems, customSettings);
-        mLinearLayoutManager = new LinearLayoutManager(this.getActivity().getApplicationContext()) {
+    @Override
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        entryField.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView textView, int i, KeyEvent keyEvent) {
+                if (EditorInfo.IME_ACTION_SEND == i) {
+                    sendUserTextMessage();
+                    return true;
+                }
+
+                return false;
+            }
+        });
+
+        sendButton.setOnClickListener(this);
+        //snapButton.setOnClickListener(this);
+
+        messages = new ArrayList<>();
+        messageItems = new ArrayList<>();
+        recyclerAdapter = new MessageRecyclerAdapter(messageItems, customSettings);
+        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getContext().getApplicationContext()) {
             @Override
             public boolean canScrollVertically() {
-                return !mRefresher.isRefreshing();
+                return !refresher.isRefreshing();
             }
 
             @Override
@@ -208,19 +234,19 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
                 try {
                     super.onLayoutChildren(recycler, state);
                 } catch (IndexOutOfBoundsException e) {
+                    Log.w(TAG, "IndexOutOfBoundsException", e);
                 }
             }
         };
-        mLinearLayoutManager.setStackFromEnd(true);
+        linearLayoutManager.setStackFromEnd(true);
 
-        // Setup recycler view
-        mRecyclerView.setLayoutManager(mLinearLayoutManager);
-        mRecyclerView.setAdapter(mRecyclerAdapter);
-        mRecyclerView.setOnTouchListener(
+        recyclerView.setLayoutManager(linearLayoutManager);
+        recyclerView.setAdapter(recyclerAdapter);
+        recyclerView.setOnTouchListener(
                 new View.OnTouchListener() {
                     @Override
                     public boolean onTouch(View v, MotionEvent event) {
-                        return mRefresher.isRefreshing();
+                        return refresher.isRefreshing();
                     }
                 }
         );
@@ -228,19 +254,17 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
         startUpdateTimestampsThread();
         startHereWhenUpdate = 0;
         recentUpdatedTime = 0;
-        mRefresher = new Refresher(false);
-        setStyle(R.style.MyTheme);
+        refresher = new Refresher(false);
 
         loadMoreMessagesIfNecessary();
         startLoadMoreMessagesListener();
 
-        if (ContextCompat.checkSelfPermission(getActivity().getApplicationContext(),
-                Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED ||
-                ContextCompat.checkSelfPermission(getActivity().getApplicationContext(),
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
-            ActivityCompat.requestPermissions(getActivity(), new String[]{Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE}, 232);
-
-        return rootView;
+        /*if (ContextCompat.checkSelfPermission(getContext().getApplicationContext(),
+                Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED
+                || ContextCompat.checkSelfPermission(getContext().getApplicationContext(),
+                Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
+            ActivityCompat.requestPermissions(getActivity(), new String[]{Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    REQUEST_CODE_PERMISSION_CAMERA_EXTERNAL_STORAGE);*/
     }
 
     private void startUpdateTimestampsThread() {
@@ -248,9 +272,9 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
         scheduleTaskExecutor.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
-                for (int i = startHereWhenUpdate; i < mMessages.size() && i < mMessageItems.size(); i++) {
+                for (int i = startHereWhenUpdate; i < messages.size() && i < messageItems.size(); i++) {
                     try {
-                        MessageItem messageItem = mMessageItems.get(i);
+                        MessageItem messageItem = messageItems.get(i);
                         Message message = messageItem.getMessage();
                         if (DateUtils.dateNeedsUpdated(message.getDate(), messageItem.getDate())) {
                             messageItem.updateDate(message.getDate());
@@ -268,21 +292,22 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
     }
 
     private void startLoadMoreMessagesListener() {
-        if (Build.VERSION.SDK_INT >= 23)
-            mRecyclerView.setOnScrollChangeListener(new View.OnScrollChangeListener() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            recyclerView.setOnScrollChangeListener(new View.OnScrollChangeListener() {
                 @Override
                 public void onScrollChange(View view, int i, int i1, int i2, int i3) {
                     loadMoreMessagesIfNecessary();
                 }
             });
-        else
-            mRecyclerView.setOnScrollListener(new RecyclerView.OnScrollListener() {
+        } else {
+            recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
                 @Override
                 public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
                     super.onScrolled(recyclerView, dx, dy);
                     loadMoreMessagesIfNecessary();
                 }
             });
+        }
     }
 
     private void loadMoreMessagesIfNecessary() {
@@ -300,10 +325,10 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
             @Override
             protected void onPreExecute() {
                 super.onPreExecute();
-                mRefresher.setIsRefreshing(true);
-                spinnerExists = moreMessagesExist && mMessages.get(0) instanceof SpinnerMessage;
+                refresher.setIsRefreshing(true);
+                spinnerExists = moreMessagesExist && messages.get(0) instanceof SpinnerMessage;
                 if (spinnerExists) {
-                    mMessages.remove(0);
+                    messages.remove(0);
                 }
             }
 
@@ -319,12 +344,13 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
                 int upTo = messages.size();
                 for (int i = messages.size() - 1; i >= 0; i--) {
                     Message message = messages.get(i);
-                    mMessages.add(0, message);
+                    messages.add(0, message);
                 }
-                if (spinnerExists && moreMessagesExist)
-                    mMessages.add(0, new SpinnerMessage());
-                mRefresher.setIsRefreshing(false);
-                replaceMessages(mMessages, upTo);
+                if (spinnerExists && moreMessagesExist) {
+                    messages.add(0, new SpinnerMessage());
+                }
+                refresher.setIsRefreshing(false);
+                replaceMessages(messages, upTo);
             }
         }.execute();
     }
@@ -334,14 +360,14 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
     }
 
     private void replaceMessages(List<Message> messages, int upTo) {
-        if (getActivity() != null) {
-            new ReplaceMessagesTask(messages, mMessageItems, mRecyclerAdapter,
-                    getActivity().getApplicationContext(), mRefresher, upTo).execute();
+        if (getContext() != null) {
+            new ReplaceMessagesTask(messages, messageItems, recyclerAdapter,
+                    getContext().getApplicationContext(), refresher, upTo).execute();
         }
     }
 
     private boolean shouldReloadData() {
-        int scrollOffset = mRecyclerView.computeVerticalScrollOffset();
+        int scrollOffset = recyclerView.computeVerticalScrollOffset();
         if (loadMoreMessagesListener == null || !moreMessagesExist) {
             return false;
         } else {
@@ -351,86 +377,83 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
     }
 
     private void updateTimestampAtValue(final int i) {
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                mRecyclerAdapter.notifyItemChanged(i);
-            }
-        });
+        if (getActivity() != null) {
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    recyclerAdapter.notifyItemChanged(i);
+                }
+            });
+        }
     }
-
-    private File file;
-    private Uri outputFileUri;
 
     @Override
     public void onClick(View v) {
         if (v.getId() == R.id.slyce_messaging_image_view_send) {
             sendUserTextMessage();
-        } else if (v.getId() == R.id.slyce_messaging_image_view_snap) {
-            mEntryField.setText("");
-            final File mediaStorageDir = getActivity().getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        }/* else if (v.getId() == R.id.slyce_messaging_image_view_snap) {
+            entryField.setText("");
+            final File mediaStorageDir = getContext().getExternalFilesDir(Environment.DIRECTORY_PICTURES);
             final File root = new File(mediaStorageDir, "SlyceMessaging");
             root.mkdirs();
             final String fname = "img_" + System.currentTimeMillis() + ".jpg";
             file = new File(root, fname);
             outputFileUri = Uri.fromFile(file);
-            Intent takePhotoIntent = new CameraActivity.IntentBuilder(getActivity().getApplicationContext())
+            Intent takePhotoIntent = new CameraActivity.IntentBuilder(getContext().getApplicationContext())
                     .skipConfirm()
-                    .to(this.file)
+                    .to(file)
                     .zoomStyle(ZoomStyle.SEEKBAR)
                     .updateMediaStore()
                     .build();
             Intent pickPhotoIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-            pickPhotoIntent.setType("image/*");
+            pickPhotoIntent.setType("image*//*");
             Intent chooserIntent = Intent.createChooser(pickPhotoIntent, "Take a photo or select one from your device");
             chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{takePhotoIntent});
             try {
-                startActivityForResult(chooserIntent, 1);
+                startActivityForResult(chooserIntent, REQUEST_CODE_CAMERA_INTENT);
             } catch (RuntimeException exception) {
                 Log.d("debug", exception.getMessage());
                 exception.printStackTrace();
             }
-        }
+        }*/
     }
 
-    @Override
+    /*@Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 232 || (data == null && this.file.exists())) {
+
+        if (REQUEST_CODE_PERMISSION_CAMERA_EXTERNAL_STORAGE == requestCode || (data == null && file.exists())) {
             return;
         }
+
         try {
-            if (requestCode == 1 && resultCode == getActivity().RESULT_OK) {
+            if (REQUEST_CODE_CAMERA_INTENT == requestCode && Activity.RESULT_OK == resultCode) {
                 final boolean isCamera;
                 if (data == null) {
                     isCamera = true;
                 } else {
                     final String action = data.getAction();
-                    if (action == null) {
-                        isCamera = false;
-                    } else {
-                        isCamera = action.equals(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
-                    }
+                    isCamera = action != null && action.equals(MediaStore.ACTION_IMAGE_CAPTURE);
                 }
 
                 Uri selectedImageUri;
                 if (isCamera && data != null) { // if there is no picture
                     return;
                 }
-                if (isCamera || data == null || data.getData() == null) {
+                if (isCamera || data.getData() == null) {
                     selectedImageUri = outputFileUri;
                 } else {
-                    selectedImageUri = data == null ? null : data.getData();
+                    selectedImageUri = data.getData();
                 }
                 MediaMessage message = new MediaMessage();
                 message.setUrl(selectedImageUri.toString());
                 message.setDate(System.currentTimeMillis());
-                message.setDisplayName(this.defaultDisplayName);
+                message.setDisplayName(defaultDisplayName);
                 message.setSource(MessageSource.LOCAL_USER);
-                message.setAvatarUrl(this.defaultAvatarUrl);
-                message.setUserId(this.defaultUserId);
+                message.setAvatarUrl(defaultAvatarUrl);
+                message.setUserId(defaultUserId);
                 addNewMessage(message);
-                ScrollUtils.scrollToBottomAfterDelay(mRecyclerView, mRecyclerAdapter);
+                ScrollUtils.scrollToBottomAfterDelay(recyclerView, recyclerAdapter);
                 if (listener != null)
                     listener.onUserSendsMediaMessage(selectedImageUri);
             }
@@ -438,13 +461,13 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
             Log.d("debug", exception.getMessage());
             exception.printStackTrace();
         }
-    }
+    }*/
 
     private void sendUserTextMessage() {
-        String text = ViewUtils.getStringFromEditText(mEntryField);
+        String text = ViewUtils.getStringFromEditText(entryField);
         if (TextUtils.isEmpty(text))
             return;
-        mEntryField.setText("");
+        entryField.setText("");
 
         // Build messageData object
         TextMessage message = new TextMessage();
@@ -456,7 +479,7 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
         message.setUserId(defaultUserId);
         addNewMessage(message);
 
-        ScrollUtils.scrollToBottomAfterDelay(mRecyclerView, mRecyclerAdapter);
+        ScrollUtils.scrollToBottomAfterDelay(recyclerView, recyclerAdapter);
         if (listener != null)
             listener.onUserSendsTextMessage(message.getText());
     }
