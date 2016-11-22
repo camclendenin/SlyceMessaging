@@ -86,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
         slyceMessagingFragment = (SlyceMessagingFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_for_slyce_messaging);
         slyceMessagingFragment.setStyle(R.style.Message);
 
-        slyceMessagingFragment.setOnSendMessageListener(new UserSendsMessageListener() {
+        /*slyceMessagingFragment.setOnSendMessageListener(new UserSendsMessageListener() {
             @Override
             public void onUserSendsTextMessage(String text) {
                 Log.d("inf", "******************************** " + text);
@@ -135,7 +135,7 @@ public class MainActivity extends AppCompatActivity {
                 textMessage.setSource(MessageSource.EXTERNAL_USER);
                 slyceMessagingFragment.addNewMessage(textMessage);
             }
-        }, 3, 3, TimeUnit.SECONDS);
+        }, 3, 3, TimeUnit.SECONDS);*/
     }
 
 

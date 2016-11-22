@@ -1,13 +1,13 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 24
-    buildToolsVersion '24.0.2'
+    compileSdkVersion 25
+    buildToolsVersion '25'
 
     defaultConfig {
         applicationId "it.snipsnap.slyce_messaging_example"
         minSdkVersion 16
-        targetSdkVersion 24
+        targetSdkVersion 25
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
@@ -29,6 +29,8 @@ dependencies {
     androidTestCompile "com.android.support.test:rules:$rootProject.ext.testRunnerVersion"
     androidTestCompile "com.android.support.test.espresso:espresso-core:$rootProject.ext.espressoVersion"
     androidTestCompile "com.android.support.test.espresso:espresso-contrib:$rootProject.ext.espressoVersion"
+
+    debugCompile "com.squareup.leakcanary:leakcanary-android:1.4-beta2"
 
     // Handle support annotation library conflict with testing support libraries
     configurations.androidTestCompile.dependencies.each { androidTestCompileDependency ->

@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import java.lang.ref.WeakReference;
 import java.util.List;
 
 import it.slyce.messaging.message.Message;
@@ -23,7 +24,7 @@ public class AddNewMessageTask extends AsyncTask {
     private List<Message> messages;
     private List<MessageItem> mMessageItems;
     private MessageRecyclerAdapter mRecyclerAdapter;
-    private RecyclerView mRecyclerView;
+    private WeakReference<RecyclerView> mRecyclerView;
     private Context context;
     private CustomSettings customSettings;
     private int rangeStartingPoint;
@@ -32,7 +33,7 @@ public class AddNewMessageTask extends AsyncTask {
             List<Message> messages,
             List<MessageItem> mMessageItems,
             MessageRecyclerAdapter mRecyclerAdapter,
-            RecyclerView mRecyclerView,
+            WeakReference<RecyclerView> mRecyclerView,
             Context context,
             CustomSettings customSettings) {
         this.messages = messages;
@@ -65,21 +66,21 @@ public class AddNewMessageTask extends AsyncTask {
         super.onPostExecute(o);
         if (o != null)
             return;
-        boolean isAtBottom = !mRecyclerView.canScrollVertically(1);
-        boolean isAtTop = !mRecyclerView.canScrollVertically(-1);
+        boolean isAtBottom = mRecyclerView.get() != null && !mRecyclerView.get().canScrollVertically(1);
+        boolean isAtTop = mRecyclerView.get() != null && !mRecyclerView.get().canScrollVertically(-1);
         mRecyclerAdapter.notifyItemRangeInserted(rangeStartingPoint + 1, messages.size() - rangeStartingPoint - 1);
         mRecyclerAdapter.notifyItemChanged(rangeStartingPoint);
-        if (isAtBottom || messages.get(messages.size() - 1).getSource() == MessageSource.LOCAL_USER)
-            mRecyclerView.scrollToPosition(mRecyclerAdapter.getItemCount() - 1);
-        else {
+        if (mRecyclerView.get() != null && (isAtBottom || messages.get(messages.size() - 1).getSource() == MessageSource.LOCAL_USER)) {
+            mRecyclerView.get().scrollToPosition(mRecyclerAdapter.getItemCount() - 1);
+        } else {
             if (isAtTop) {
-                ScrollUtils.scrollToTopAfterDelay(mRecyclerView, mRecyclerAdapter);
+                ScrollUtils.scrollToTopAfterDelay(mRecyclerView.get(), mRecyclerAdapter);
             }
-            Snackbar snackbar = Snackbar.make(mRecyclerView, "New message!", Snackbar.LENGTH_SHORT)
+            Snackbar snackbar = Snackbar.make(mRecyclerView.get(), "New message!", Snackbar.LENGTH_SHORT)
                     .setAction("VIEW", new View.OnClickListener() {
                         @Override
                         public void onClick(View view) {
-                            mRecyclerView.smoothScrollToPosition(mRecyclerAdapter.getItemCount() - 1);
+                            mRecyclerView.get().smoothScrollToPosition(mRecyclerAdapter.getItemCount() - 1);
                         }
                     });
             ViewGroup group = (ViewGroup) snackbar.getView();

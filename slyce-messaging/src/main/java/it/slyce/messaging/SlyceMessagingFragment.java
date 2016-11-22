@@ -1,5 +1,6 @@
 package it.slyce.messaging;
 
+import android.annotation.SuppressLint;
 import android.content.res.TypedArray;
 import android.graphics.Color;
 import android.net.Uri;
@@ -23,6 +24,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.io.File;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -77,22 +79,36 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
     private int startHereWhenUpdate;
     private long recentUpdatedTime;
     private boolean moreMessagesExist;
+    private int updateTimestampAtValue;
 
     private File file;
     private Uri outputFileUri;
 
-    public void setPictureButtonVisible(final boolean bool) {
-        if (getActivity() != null)
-            getActivity().runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    if (getView() != null) {
-                        ImageView imageView = (ImageView) getView().findViewById(R.id.slyce_messaging_image_view_snap);
-                        imageView.setVisibility(bool ? View.VISIBLE : View.GONE);
-                    }
-                }
-            });
+    public void setPictureButtonVisible(final boolean pictureButtonVisible) {
+        if (getActivity() != null) {
+            getActivity().runOnUiThread(pictureButtonVisible ? setPictureButtonVisibleRunnable : setPictureButtonGoneRunnable);
+        }
     }
+
+    private Runnable setPictureButtonVisibleRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (getView() != null) {
+                ImageView imageView = (ImageView) getView().findViewById(R.id.slyce_messaging_image_view_snap);
+                imageView.setVisibility(View.VISIBLE);
+            }
+        }
+    };
+
+    private Runnable setPictureButtonGoneRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (getView() != null) {
+                ImageView imageView = (ImageView) getView().findViewById(R.id.slyce_messaging_image_view_snap);
+                imageView.setVisibility(View.GONE);
+            }
+        }
+    };
 
     private void addSpinner() {
         messages.add(0, new SpinnerMessage());
@@ -167,7 +183,7 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
     public void addNewMessages(List<Message> messages) {
         this.messages.addAll(messages);
         new AddNewMessageTask(messages, messageItems, recyclerAdapter,
-                recyclerView, getContext().getApplicationContext(), customSettings).execute();
+                new WeakReference<>(recyclerView), getContext().getApplicationContext(), customSettings).execute();
     }
 
     public void addNewMessage(Message message) {
@@ -205,17 +221,7 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        entryField.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView textView, int i, KeyEvent keyEvent) {
-                if (EditorInfo.IME_ACTION_SEND == i) {
-                    sendUserTextMessage();
-                    return true;
-                }
-
-                return false;
-            }
-        });
+        entryField.setOnEditorActionListener(keyboardOnEditorActionListener);
 
         sendButton.setOnClickListener(this);
         //snapButton.setOnClickListener(this);
@@ -242,14 +248,7 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
 
         recyclerView.setLayoutManager(linearLayoutManager);
         recyclerView.setAdapter(recyclerAdapter);
-        recyclerView.setOnTouchListener(
-                new View.OnTouchListener() {
-                    @Override
-                    public boolean onTouch(View v, MotionEvent event) {
-                        return refresher.isRefreshing();
-                    }
-                }
-        );
+        recyclerView.setOnTouchListener(recyclerViewOnTouchListener);
 
         startUpdateTimestampsThread();
         startHereWhenUpdate = 0;
@@ -267,48 +266,74 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
                     REQUEST_CODE_PERMISSION_CAMERA_EXTERNAL_STORAGE);*/
     }
 
+    private TextView.OnEditorActionListener keyboardOnEditorActionListener = new TextView.OnEditorActionListener() {
+        @Override
+        public boolean onEditorAction(TextView textView, int i, KeyEvent keyEvent) {
+            if (EditorInfo.IME_ACTION_SEND == i) {
+                sendUserTextMessage();
+                return true;
+            }
+
+            return false;
+        }
+    };
+
+    private View.OnTouchListener recyclerViewOnTouchListener = new View.OnTouchListener() {
+        @Override
+        public boolean onTouch(View view, MotionEvent motionEvent) {
+            return refresher.isRefreshing();
+        }
+    };
+
     private void startUpdateTimestampsThread() {
         ScheduledExecutorService scheduleTaskExecutor = Executors.newScheduledThreadPool(1);
-        scheduleTaskExecutor.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                for (int i = startHereWhenUpdate; i < messages.size() && i < messageItems.size(); i++) {
-                    try {
-                        MessageItem messageItem = messageItems.get(i);
-                        Message message = messageItem.getMessage();
-                        if (DateUtils.dateNeedsUpdated(message.getDate(), messageItem.getDate())) {
-                            messageItem.updateDate(message.getDate());
-                            updateTimestampAtValue(i);
-                        } else if (i == startHereWhenUpdate) {
-                            i++;
-                        }
-                    } catch (RuntimeException exception) {
-                        Log.d("debug", exception.getMessage());
-                        exception.printStackTrace();
+        scheduleTaskExecutor.scheduleAtFixedRate(startUpdateTimestampsRunnable, 0, 62, TimeUnit.SECONDS);
+    }
+
+    private Runnable startUpdateTimestampsRunnable = new Runnable() {
+        @Override
+        public void run() {
+            for (int i = startHereWhenUpdate; i < messages.size() && i < messageItems.size(); i++) {
+                try {
+                    MessageItem messageItem = messageItems.get(i);
+                    Message message = messageItem.getMessage();
+                    if (DateUtils.dateNeedsUpdated(message.getDate(), messageItem.getDate())) {
+                        messageItem.updateDate(message.getDate());
+                        updateTimestampAtValue(i);
+                    } else if (i == startHereWhenUpdate) {
+                        i++;
                     }
+                } catch (RuntimeException exception) {
+                    Log.d("debug", exception.getMessage());
+                    exception.printStackTrace();
                 }
             }
-        }, 0, 62, TimeUnit.SECONDS);
-    }
+        }
+    };
 
     private void startLoadMoreMessagesListener() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            recyclerView.setOnScrollChangeListener(new View.OnScrollChangeListener() {
-                @Override
-                public void onScrollChange(View view, int i, int i1, int i2, int i3) {
-                    loadMoreMessagesIfNecessary();
-                }
-            });
+            recyclerView.setOnScrollChangeListener(recyclerViewOnScrollChangeListener);
         } else {
-            recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
-                @Override
-                public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                    super.onScrolled(recyclerView, dx, dy);
-                    loadMoreMessagesIfNecessary();
-                }
-            });
+            recyclerView.addOnScrollListener(recyclerViewOnScrollListener);
         }
     }
+
+    @SuppressLint("NewApi")
+    private View.OnScrollChangeListener recyclerViewOnScrollChangeListener = new View.OnScrollChangeListener() {
+        @Override
+        public void onScrollChange(View view, int i, int i1, int i2, int i3) {
+            loadMoreMessagesIfNecessary();
+        }
+    };
+
+    private RecyclerView.OnScrollListener recyclerViewOnScrollListener = new RecyclerView.OnScrollListener() {
+        @Override
+        public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+            super.onScrolled(recyclerView, dx, dy);
+            loadMoreMessagesIfNecessary();
+        }
+    };
 
     private void loadMoreMessagesIfNecessary() {
         if (shouldReloadData()) {
@@ -319,16 +344,20 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
 
     private void loadMoreMessages() {
         new AsyncTask<Void, Void, Void>() {
+            private WeakReference<List<Message>> fragmentMessages = new WeakReference<>(SlyceMessagingFragment.this.messages);
             private boolean spinnerExists;
             private List<Message> messages;
 
             @Override
             protected void onPreExecute() {
                 super.onPreExecute();
-                refresher.setIsRefreshing(true);
-                spinnerExists = moreMessagesExist && SlyceMessagingFragment.this.messages.get(0) instanceof SpinnerMessage;
-                if (spinnerExists) {
-                    SlyceMessagingFragment.this.messages.remove(0);
+
+                if (fragmentMessages != null && fragmentMessages.get() != null) {
+                    refresher.setIsRefreshing(true);
+                    spinnerExists = moreMessagesExist && fragmentMessages.get().get(0) instanceof SpinnerMessage;
+                    if (spinnerExists) {
+                        fragmentMessages.get().remove(0);
+                    }
                 }
             }
 
@@ -341,16 +370,19 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
             @Override
             protected void onPostExecute(Void aVoid) {
                 super.onPostExecute(aVoid);
-                int upTo = messages.size();
-                for (int i = messages.size() - 1; i >= 0; i--) {
-                    Message message = messages.get(i);
-                    SlyceMessagingFragment.this.messages.add(0, message);
+
+                if (fragmentMessages != null && fragmentMessages.get() != null) {
+                    int upTo = messages.size();
+                    for (int i = messages.size() - 1; i >= 0; i--) {
+                        Message message = messages.get(i);
+                        fragmentMessages.get().add(0, message);
+                    }
+                    if (spinnerExists && moreMessagesExist) {
+                        messages.add(0, new SpinnerMessage());
+                    }
+                    refresher.setIsRefreshing(false);
+                    replaceMessages(messages, upTo);
                 }
-                if (spinnerExists && moreMessagesExist) {
-                    messages.add(0, new SpinnerMessage());
-                }
-                refresher.setIsRefreshing(false);
-                replaceMessages(messages, upTo);
             }
         }.execute();
     }
@@ -368,24 +400,24 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
 
     private boolean shouldReloadData() {
         int scrollOffset = recyclerView.computeVerticalScrollOffset();
-        if (loadMoreMessagesListener == null || !moreMessagesExist) {
-            return false;
-        } else {
-            return scrollOffset < START_RELOADING_DATA_AT_SCROLL_VALUE &&
-                    recentUpdatedTime + 1000 < new Date().getTime();
-        }
+        return !(loadMoreMessagesListener == null || !moreMessagesExist)
+                && scrollOffset < START_RELOADING_DATA_AT_SCROLL_VALUE
+                && recentUpdatedTime + 1000 < new Date().getTime();
     }
 
     private void updateTimestampAtValue(final int i) {
         if (getActivity() != null) {
-            getActivity().runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    recyclerAdapter.notifyItemChanged(i);
-                }
-            });
+            updateTimestampAtValue = i;
+            getActivity().runOnUiThread(updateTimestampAtValueRunnable);
         }
     }
+
+    private Runnable updateTimestampAtValueRunnable = new Runnable() {
+        @Override
+        public void run() {
+            recyclerAdapter.notifyItemChanged(updateTimestampAtValue);
+        }
+    };
 
     @Override
     public void onClick(View v) {
