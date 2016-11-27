@@ -183,6 +183,7 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
     public void addNewMessages(List<Message> messages, boolean replace) {
         if (replace) {
             this.messages.clear();
+            this.messageItems.clear();
         }
 
         this.messages.addAll(messages);
