@@ -180,16 +180,20 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
         entryField.setHintTextColor(customSettings.messageInputTextColorHint);
     }
 
-    public void addNewMessages(List<Message> messages) {
+    public void addNewMessages(List<Message> messages, boolean replace) {
+        if (replace) {
+            this.messages.clear();
+        }
+
         this.messages.addAll(messages);
         new AddNewMessageTask(messages, messageItems, recyclerAdapter,
                 new WeakReference<>(recyclerView), getContext().getApplicationContext(), customSettings).execute();
     }
 
-    public void addNewMessage(Message message) {
+    public void addNewMessage(Message message, boolean replace) {
         List<Message> messages = new ArrayList<>();
         messages.add(message);
-        addNewMessages(messages);
+        addNewMessages(messages, replace);
     }
 
     public void setOnSendMessageListener(UserSendsMessageListener listener) {
@@ -509,7 +513,7 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
         message.setDisplayName(defaultDisplayName);
         message.setText(text);
         message.setUserId(defaultUserId);
-        addNewMessage(message);
+        addNewMessage(message, false);
 
         ScrollUtils.scrollToBottomAfterDelay(recyclerView, recyclerAdapter);
         if (listener != null)
