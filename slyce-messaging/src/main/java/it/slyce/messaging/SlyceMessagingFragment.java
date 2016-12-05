@@ -399,6 +399,7 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
 
     public void messageSent(TextMessage textMessage, boolean successful, String failureMessage) {
         if (successful) {
+            entryField.setText("");
             addNewMessage(textMessage, false);
             ScrollUtils.scrollToBottomAfterDelay(recyclerView, recyclerAdapter);
         } else {
@@ -512,9 +513,9 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
 
     private void sendUserTextMessage() {
         String text = ViewUtils.getStringFromEditText(entryField);
-        if (TextUtils.isEmpty(text))
+        if (TextUtils.isEmpty(text)) {
             return;
-        entryField.setText("");
+        }
 
         // Build messageData object
         TextMessage message = new TextMessage();
