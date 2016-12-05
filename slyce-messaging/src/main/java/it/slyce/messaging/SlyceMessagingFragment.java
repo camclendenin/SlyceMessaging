@@ -22,6 +22,7 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.File;
 import java.lang.ref.WeakReference;
@@ -396,6 +397,15 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
         replaceMessages(messages, -1);
     }
 
+    public void messageSent(TextMessage textMessage, boolean successful, String failureMessage) {
+        if (successful) {
+            addNewMessage(textMessage, false);
+            ScrollUtils.scrollToBottomAfterDelay(recyclerView, recyclerAdapter);
+        } else {
+            Toast.makeText(getContext(), failureMessage, Toast.LENGTH_SHORT).show();
+        }
+    }
+
     private void replaceMessages(List<Message> messages, int upTo) {
         if (getContext() != null) {
             new ReplaceMessagesTask(messages, messageItems, recyclerAdapter,
@@ -514,10 +524,9 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
         message.setDisplayName(defaultDisplayName);
         message.setText(text);
         message.setUserId(defaultUserId);
-        addNewMessage(message, false);
 
-        ScrollUtils.scrollToBottomAfterDelay(recyclerView, recyclerAdapter);
-        if (listener != null)
-            listener.onUserSendsTextMessage(message.getText());
+        if (listener != null) {
+            listener.onUserSendsTextMessage(message);
+        }
     }
 }

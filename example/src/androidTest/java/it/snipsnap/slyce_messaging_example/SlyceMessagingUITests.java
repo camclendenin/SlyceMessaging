@@ -38,7 +38,7 @@ public class SlyceMessagingUITests extends ActivityInstrumentationTestCase2<Main
         super.setUp();
         injectInstrumentation(InstrumentationRegistry.getInstrumentation());
         mActivity = getActivity();
-        mFragment = (SlyceMessagingFragment) mActivity.getFragmentManager().findFragmentById(R.id.fragment_for_slyce_messaging);
+        mFragment = (SlyceMessagingFragment) mActivity.getSupportFragmentManager().findFragmentById(R.id.fragment_for_slyce_messaging);
         mRecyclerView = (RecyclerView) mFragment.getView().findViewById(R.id.slyce_messaging_recycler_view);
         mAdapter = (MessageRecyclerAdapter) mRecyclerView.getAdapter();
     }
@@ -61,7 +61,7 @@ public class SlyceMessagingUITests extends ActivityInstrumentationTestCase2<Main
         textMessage.setDate(new Date().getTime());
         textMessage.setUserId("ueoanhotneutnhaeuo");
         textMessage.setAvatarUrl("");
-        mFragment.addNewMessage(textMessage);
+        mFragment.addNewMessage(textMessage, false);
         checkIsAtBottom();
     }
 
@@ -74,7 +74,7 @@ public class SlyceMessagingUITests extends ActivityInstrumentationTestCase2<Main
             textMessage.setDate(new Date().getTime());
             textMessage.setUserId("ueoanhotneutnhaeuo");
             textMessage.setAvatarUrl("");
-            mFragment.addNewMessage(textMessage);
+            mFragment.addNewMessage(textMessage, false);
         }
         checkIsAtBottom();
     }
