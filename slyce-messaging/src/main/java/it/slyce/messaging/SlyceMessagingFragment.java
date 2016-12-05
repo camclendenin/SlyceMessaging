@@ -23,7 +23,6 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.io.File;
 import java.lang.ref.WeakReference;
@@ -404,7 +403,16 @@ public class SlyceMessagingFragment extends Fragment implements OnClickListener 
             addNewMessage(textMessage, false);
             ScrollUtils.scrollToBottomAfterDelay(recyclerView, recyclerAdapter);
         } else {
-            Snackbar.make(recyclerView, failureMessage, Snackbar.LENGTH_SHORT).show();
+            Snackbar snackbar = Snackbar.make(recyclerView, failureMessage, Snackbar.LENGTH_SHORT);
+            ViewGroup group = (ViewGroup) snackbar.getView();
+            for (int i = 0; i < group.getChildCount(); i++) {
+                View v = group.getChildAt(i);
+                if (v instanceof TextView) {
+                    ((TextView) v).setTextColor(customSettings.snackbarTitleColor);
+                }
+            }
+            snackbar.getView().setBackgroundColor(customSettings.snackbarBackground);
+            snackbar.show();
         }
     }
 
